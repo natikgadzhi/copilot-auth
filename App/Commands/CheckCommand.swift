@@ -11,7 +11,7 @@ struct CheckCommand: AsyncParsableCommand {
   func run() async throws {
     switch await CopilotTokenProbe.run(secretStore: KeychainCopilotSecretStore()) {
     case .valid:
-      print("authenticated")
+      print(SessionMessage.saved)
     case .expired:
       print("expired — run `authenticate` again")
       throw ExitCode(1)

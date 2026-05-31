@@ -25,6 +25,9 @@ enum AppRunLoop {
 
     let hosting = NSHostingController(
       rootView: LoginWindowContent(manager: manager) {
+        // Print to the terminal that launched us (no-op under a Finder launch),
+        // then quit — login succeeded and the secrets are stored.
+        print(SessionMessage.saved)
         NSApplication.shared.terminate(nil)
       }
     )

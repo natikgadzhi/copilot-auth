@@ -1,4 +1,5 @@
 import ArgumentParser
+import CopilotAuthKit
 import Foundation
 
 @main
@@ -17,7 +18,8 @@ struct CopilotAuth: AsyncParsableCommand {
   /// which argument-parser would otherwise reject as unknown options.
   static func main() async {
     do {
-      var command = try parseAsRoot(userArguments())
+      let args = LaunchArguments.user(from: Array(CommandLine.arguments.dropFirst()))
+      var command = try parseAsRoot(args)
       if var asyncCommand = command as? AsyncParsableCommand {
         try await asyncCommand.run()
       } else {
@@ -26,18 +28,5 @@ struct CopilotAuth: AsyncParsableCommand {
     } catch {
       exit(withError: error)
     }
-  }
-
-  private static func userArguments() -> [String] {
-    var result: [String] = []
-    var iterator = CommandLine.arguments.dropFirst().makeIterator()
-    while let arg = iterator.next() {
-      if arg.hasPrefix("-NS") || arg.hasPrefix("-Apple") {
-        _ = iterator.next()  // skip the injected option's value
-        continue
-      }
-      result.append(arg)
-    }
-    return result
   }
 }
