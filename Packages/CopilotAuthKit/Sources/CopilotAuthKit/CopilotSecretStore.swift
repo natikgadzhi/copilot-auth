@@ -53,10 +53,16 @@ public final class KeychainCopilotSecretStore: CopilotSecretStoring, @unchecked 
 
   public func write(secrets: CopilotSessionSecrets) {
     guard let data = try? secrets.encoded() else { return }
-    var query = baseQuery()
-    SecItemDelete(query as CFDictionary)
-    query[kSecValueData] = data
-    SecItemAdd(query as CFDictionary, nil)
+    // Delete first by the bare primary key (service + account) so an item written
+    // by an older build — with different accessibility — is still replaced.
+    SecItemDelete(baseQuery() as CFDictionary)
+    var attributes = baseQuery()
+    attributes[kSecValueData] = data
+    // The refresh token is a bearer credential, so pin it to this device: never
+    // synced to iCloud Keychain, never in an unencrypted backup, and only
+    // readable while the Mac is unlocked.
+    attributes[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
+    SecItemAdd(attributes as CFDictionary, nil)
   }
 
   public func clear() {

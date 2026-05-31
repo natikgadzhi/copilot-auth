@@ -31,7 +31,12 @@ public final class CopilotAuthManager: NSObject {
     if let webView { return webView }
     let webView = WKWebView(frame: .zero, configuration: WKWebViewConfiguration())
     webView.navigationDelegate = self
-    webView.isInspectable = true
+    // Inspectable in debug only: a distributed release must not expose the logged
+    // in session's IndexedDB (the raw refresh token) to Safari's Web Inspector.
+    // `make authenticate` builds Debug, so local verification keeps the inspector.
+    #if DEBUG
+      webView.isInspectable = true
+    #endif
     self.webView = webView
     return webView
   }
@@ -90,7 +95,7 @@ extension CopilotAuthManager: WKNavigationDelegate {
   public func webView(
     _ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!
   ) {
-    log.info("didStart: \(webView.url?.absoluteString ?? "<nil>", privacy: .public)")
+    log.info("didStart: \(webView.url?.host ?? "<nil>", privacy: .public)")
   }
 
   public func webView(
@@ -107,7 +112,7 @@ extension CopilotAuthManager: WKNavigationDelegate {
   }
 
   public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-    log.info("didFinish: \(webView.url?.absoluteString ?? "<nil>", privacy: .public)")
+    log.info("didFinish: \(webView.url?.host ?? "<nil>", privacy: .public)")
   }
 
   /// The web content process crashing is the classic "blank page" cause — log it
@@ -119,7 +124,7 @@ extension CopilotAuthManager: WKNavigationDelegate {
   /// After each navigation commit, read the Firebase IndexedDB record; `ingest`
   /// no-ops until both secrets have landed (post-login), then persists once.
   public func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
-    log.info("didCommit: \(webView.url?.absoluteString ?? "<nil>", privacy: .public)")
+    log.info("didCommit: \(webView.url?.host ?? "<nil>", privacy: .public)")
     guard state != .authenticated else { return }
     Task { @MainActor in
       let result = try? await webView.callAsyncJavaScript(

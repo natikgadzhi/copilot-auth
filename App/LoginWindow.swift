@@ -53,6 +53,19 @@ struct LoginWindowContent: View {
 
   private func open() {
     guard let url = parsedLink else { return }
+    // The pasted link loads into the web view that holds the Copilot session, so
+    // confirm the destination host first — a phishing email could otherwise lure
+    // a paste of an attacker URL. (Once the real magic-link host is confirmed
+    // against the live site, this can tighten to a hard allowlist.)
+    let alert = NSAlert()
+    alert.messageText = "Open this sign-in link?"
+    alert.informativeText = "It will load \(url.host ?? url.absoluteString) in the login window."
+    alert.addButton(withTitle: "Open")
+    alert.addButton(withTitle: "Cancel")
+    // The first (default) button returns the stable value 1000; the named
+    // constant isn't vended as a Swift symbol in this SDK.
+    let firstButton = NSApplication.ModalResponse(rawValue: 1000)
+    guard alert.runModal() == firstButton else { return }
     manager.loadSignInLink(url)
   }
 }
