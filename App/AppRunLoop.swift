@@ -55,10 +55,11 @@ enum AppRunLoop {
     app.run()
   }
 
-  /// A bare AppKit app has no menu bar, so neither ⌘Q nor the standard
-  /// text-editing key equivalents (⌘V/⌘C/⌘X/⌘A) work. Install a minimal menu: an
-  /// app menu with Quit, and an Edit menu whose items target the first responder
-  /// via the responder chain so paste works in the sign-in-link field.
+  /// A bare AppKit app has no menu bar, so the standard key equivalents (⌘Q, ⌘W,
+  /// and the ⌘V/⌘C/⌘X/⌘A text-editing ones) don't work. Install a minimal menu:
+  /// an app menu with Quit, a File menu with Close (⌘W), and an Edit menu whose
+  /// items target the first responder via the responder chain so paste works in
+  /// the sign-in-link field.
   @MainActor
   private static func installMainMenu(_ app: NSApplication) {
     let mainMenu = NSMenu()
@@ -69,6 +70,15 @@ enum AppRunLoop {
     appMenu.addItem(
       withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
     appItem.submenu = appMenu
+
+    let fileItem = NSMenuItem()
+    mainMenu.addItem(fileItem)
+    let fileMenu = NSMenu(title: "File")
+    // nil target → travels the responder chain to the key window's performClose.
+    // Closing the window quits the app (see LoginAppDelegate).
+    fileMenu.addItem(
+      withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+    fileItem.submenu = fileMenu
 
     let editItem = NSMenuItem()
     mainMenu.addItem(editItem)
