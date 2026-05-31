@@ -1,0 +1,29 @@
+import AppKit
+import CopilotAuthKit
+import SwiftUI
+
+/// Bridges the `authenticate` command to an AppKit run loop, because WKWebView
+/// needs one. Only the GUI login needs this; `check` is plain HTTP.
+enum AppRunLoop {
+  /// Show the login window until authenticated, then quit.
+  @MainActor
+  static func runLogin(manager: CopilotAuthManager) {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.regular)
+
+    let hosting = NSHostingController(
+      rootView: LoginWindowContent(manager: manager) {
+        NSApplication.shared.terminate(nil)
+      }
+    )
+
+    let window = NSWindow(contentViewController: hosting)
+    window.title = "Sign in to Copilot"
+    window.setContentSize(NSSize(width: 480, height: 720))
+    window.makeKeyAndOrderFront(nil)
+    app.activate(ignoringOtherApps: true)
+    // Drive the load here (not via SwiftUI onAppear) so it's deterministic.
+    manager.startLogin()
+    app.run()
+  }
+}

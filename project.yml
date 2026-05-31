@@ -1,0 +1,50 @@
+name: CopilotAuth
+options:
+  bundleIdPrefix: io.respawn
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+packages:
+  CopilotAuthKit:
+    path: Packages/CopilotAuthKit
+  ArgumentParser:
+    url: https://github.com/apple/swift-argument-parser
+    from: 1.5.0
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  CopilotAuth:
+    # An .app bundle (not a bare tool): WKWebView's WebContent helper process
+    # only launches from inside a real, signed bundle. We still drive it as a CLI
+    # via .app/Contents/MacOS/CopilotAuth <subcommand>.
+    type: application
+    platform: macOS
+    sources:
+      - App
+    dependencies:
+      - package: CopilotAuthKit
+        product: CopilotAuthKit
+      - package: ArgumentParser
+        product: ArgumentParser
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.respawn.CopilotAuth
+        GENERATE_INFOPLIST_FILE: YES
+        # Stable code signature, on purpose. macOS keys a Keychain item's
+        # no-prompt access on the app's *designated requirement* (team + bundle
+        # id) for a real identity, but on the per-build cdhash for an ad-hoc
+        # signature. Ad-hoc therefore re-prompts on every rebuild; a Developer ID
+        # signature is stable across rebuilds — and matches the eventual notarized
+        # release. CI passes CODE_SIGNING_ALLOWED=NO (no certs on the runner).
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+        DEVELOPMENT_TEAM: "9YKSA5B4FP"
+    scheme:
+      # So ⌘R in Xcode runs the login flow (no-arg launch just prints help).
+      # Toggle to `check` in Edit Scheme → Run → Arguments when you want that.
+      commandLineArguments:
+        "authenticate": true
