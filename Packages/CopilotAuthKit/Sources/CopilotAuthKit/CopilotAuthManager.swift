@@ -21,6 +21,10 @@ public final class CopilotAuthManager: NSObject {
   /// reveal the paste-the-link field. Stays true thereafter (resends are fine).
   public private(set) var signInLinkSent = false
 
+  /// Called when a capture attempt throws — a seam for the app to report the
+  /// error (e.g. to crash telemetry) without the kit depending on any reporter.
+  public var onError: (@MainActor (any Error) -> Void)?
+
   private var webView: WKWebView?
   private var captureTask: Task<Void, Never>?
 
@@ -109,6 +113,7 @@ public final class CopilotAuthManager: NSObject {
       }
     } catch {
       log.error("capture error: \(error.localizedDescription, privacy: .public)")
+      onError?(error)
     }
   }
 

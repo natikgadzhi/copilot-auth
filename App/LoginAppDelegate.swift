@@ -11,4 +11,12 @@ final class LoginAppDelegate: NSObject, NSApplicationDelegate {
   @objc func showAbout(_ sender: Any?) {
     About.showPanel()
   }
+
+  /// Flip the crash-reporting opt-out and update the checkmark. Takes effect on
+  /// the next launch (we don't hot-start/stop the SDK).
+  @MainActor @objc func toggleCrashReports(_ sender: NSMenuItem) {
+    let enabled = !Telemetry.isEnabled
+    Telemetry.setEnabled(enabled)
+    sender.state = enabled ? .on : .off
+  }
 }

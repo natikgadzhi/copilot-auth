@@ -198,15 +198,23 @@ archive_app() {
   rm -rf "${ARCHIVE_PATH}" "${EXPORT_DIR}/${APP_NAME}" "${DMG_STAGING_DIR}" "${RELEASE_DIR}"
   mkdir -p "${EXPORT_DIR}" "${RELEASE_DIR}" "${DMG_STAGING_DIR}"
 
+  # Provenance: bake the commit SHA into the bundle (CI sets GITHUB_SHA; locally
+  # we fall back to the working-tree HEAD). Empty → About shows "local build".
+  local sha="${GITHUB_SHA:-$(git rev-parse HEAD 2>/dev/null || echo "")}"
+
   # Archive unsigned (deterministic, and keeps an `Apple Development` identity
   # from being baked into the archive and later rejected by notarization). We
-  # sign the exported .app ourselves with Developer ID below.
+  # sign the exported .app ourselves with Developer ID below. SENTRY_DSN and
+  # CURRENT_PROJECT_VERSION come from the release workflow (empty/1 by default).
   xcodebuild \
     -project "${PROJECT_PATH}" \
     -scheme "${SCHEME}" \
     -configuration "${CONFIGURATION}" \
     -destination 'generic/platform=macOS' \
     CODE_SIGNING_ALLOWED=NO \
+    GIT_COMMIT_SHA="${sha}" \
+    SENTRY_DSN="${SENTRY_DSN:-}" \
+    CURRENT_PROJECT_VERSION="${CURRENT_PROJECT_VERSION:-1}" \
     archive \
     -archivePath "${ARCHIVE_PATH}"
 
@@ -224,6 +232,13 @@ sign_and_verify_app() {
 
   codesign --verify --deep --strict --verbose=2 "${EXPORT_DIR}/${APP_NAME}"
   spctl -a -vvv "${EXPORT_DIR}/${APP_NAME}" || true
+
+  # Release must NOT carry get-task-allow (debugger attach) — notarization
+  # rejects it. Fail loud here rather than at the notary.
+  if codesign -d --entitlements - "${EXPORT_DIR}/${APP_NAME}" 2>&1 | grep -q "get-task-allow"; then
+    echo "get-task-allow present in the signed app — Release misconfigured." >&2
+    exit 1
+  fi
 }
 
 build_dmg() {

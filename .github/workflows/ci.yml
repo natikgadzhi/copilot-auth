@@ -33,6 +33,18 @@ jobs:
       - name: Lint formatting
         run: make lint-format
 
+      # The single-chokepoint invariant: all telemetry egress lives in one file.
+      # Enforce that exactly one App source imports Sentry (Telemetry.swift).
+      - name: Telemetry chokepoint (one import Sentry)
+        run: |
+          count=$(grep -rl '^import Sentry' App | wc -l | tr -d ' ')
+          if [ "$count" != "1" ]; then
+            echo "Expected exactly one file importing Sentry, found $count:" >&2
+            grep -rl '^import Sentry' App >&2 || true
+            exit 1
+          fi
+          echo "OK: import Sentry appears in exactly one file."
+
       - name: Run package tests
         run: make test
 

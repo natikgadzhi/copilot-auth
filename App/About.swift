@@ -12,6 +12,8 @@ enum About {
     """
   private static let repo = URL(string: "https://github.com/natikgadzhi/copilot-auth")!
   private static let companion = URL(string: "https://github.com/natikgadzhi/copilot-python")!
+  private static let security = URL(
+    string: "https://github.com/natikgadzhi/copilot-auth/blob/main/SECURITY.md")!
 
   static func showPanel() {
     NSApplication.shared.activate(ignoringOtherApps: true)
@@ -28,11 +30,32 @@ enum About {
       .paragraphStyle: style,
     ]
     let text = NSMutableAttributedString(string: summary + "\n\n", attributes: base)
+    text.append(versionLine(base))
+    text.append(NSAttributedString(string: "\n\n", attributes: base))
     text.append(linkRun("View source on GitHub", repo, base))
     text.append(NSAttributedString(string: "\n", attributes: base))
     text.append(NSAttributedString(string: "Companion CLI: ", attributes: base))
     text.append(linkRun("copilot-python", companion, base))
+    text.append(NSAttributedString(string: "\n", attributes: base))
+    text.append(linkRun("Privacy & Security", security, base))
     return text
+  }
+
+  /// `Version X (build N) · abc1234` — the commit SHA is baked in at release time
+  /// (empty on local/dev builds, which render "local build" with no link).
+  private static func versionLine(_ base: [NSAttributedString.Key: Any]) -> NSAttributedString {
+    let info = Bundle.main.infoDictionary
+    let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+    let build = info?["CFBundleVersion"] as? String ?? "?"
+    let line = NSMutableAttributedString(
+      string: "Version \(version) (build \(build)) · ", attributes: base)
+    if let sha = (info?["GitCommitSHA"] as? String), !sha.isEmpty {
+      let commitURL = repo.appendingPathComponent("commit").appendingPathComponent(sha)
+      line.append(linkRun(String(sha.prefix(7)), commitURL, base))
+    } else {
+      line.append(NSAttributedString(string: "local build", attributes: base))
+    }
+    return line
   }
 
   private static func linkRun(

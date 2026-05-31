@@ -15,8 +15,15 @@ enum AppRunLoop {
     let app = NSApplication.shared
     app.setActivationPolicy(.regular)
 
+    // Start crash reporting first (no-op when opted out or when no DSN is baked
+    // into the build), so a crash during setup still has a trace. Caught capture
+    // errors are reported through the same scrubbed channel.
+    Telemetry.start()
+    manager.onError = { Telemetry.report($0) }
+
     // Closing the login window quits the app — there's nothing else to do. The
-    // delegate also hosts the About menu action, so create it before the menu.
+    // delegate also hosts the About + crash-report menu actions, so create it
+    // before the menu.
     let delegate = LoginAppDelegate()
     appDelegate = delegate
     app.delegate = delegate
@@ -75,6 +82,15 @@ enum AppRunLoop {
       keyEquivalent: "")
     aboutItem.target = aboutTarget
     appMenu.addItem(.separator())
+
+    // Opt-out toggle for crash reporting (default on). Takes effect next launch.
+    let crashItem = appMenu.addItem(
+      withTitle: "Send anonymous crash reports",
+      action: #selector(LoginAppDelegate.toggleCrashReports(_:)), keyEquivalent: "")
+    crashItem.target = aboutTarget
+    crashItem.state = Telemetry.isEnabled ? .on : .off
+    appMenu.addItem(.separator())
+
     appMenu.addItem(
       withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
 

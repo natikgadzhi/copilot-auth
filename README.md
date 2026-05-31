@@ -82,11 +82,23 @@ security find-generic-password -s io.respawn.copilot -w | jq -r '.values.refresh
 manual-paste keep working.) The first such read triggers a one-time Keychain
 prompt — click **Always Allow**.
 
-## Security
+## Privacy & Security
 
 The refresh token is a bearer credential for your Copilot account. It lives only
-in the Keychain, is never written to logs/files/argv, and the capture JS result
-is never logged.
+in the Keychain (`io.respawn.copilot`, device-only ACL), is never written to
+logs/files/argv, and the capture JS result is never logged.
+
+**What leaves your Mac:** while you sign in, the app talks to `app.copilot.money`
+and Firebase (`securetoken` / `identitytoolkit`) **as you, with your own
+account** — nothing else. Optional **crash reports** (opt-out, default on; app
+menu → *Send anonymous crash reports*) send only an app version, OS version, and a
+**scrubbed, anonymized** crash trace to Sentry — never the tokens, URLs, file
+paths, or any identifier; anything secret-shaped that survives scrubbing drops the
+whole event. Your Keychain tokens never leave the machine.
+
+Full details, the egress table, and how to verify a release (SHA-256 +
+`gh attestation verify` + the commit SHA shown in About) are in
+[SECURITY.md](SECURITY.md).
 
 ## License
 
