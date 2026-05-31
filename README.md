@@ -40,6 +40,24 @@ make build          # compile the .app
 Signed with Developer ID so the Keychain item's no-prompt access survives
 rebuilds. CI builds unsigned.
 
+## Install as a CLI
+
+This is a CLI that ships as a `.app` bundle (WKWebView needs one). `make install`
+mirrors what a Homebrew cask does — copies the app to `/Applications` and symlinks
+its binary onto your PATH as `copilot-auth`:
+
+```sh
+make install        # .app -> /Applications, copilot-auth -> $(brew --prefix)/bin
+copilot-auth --help
+copilot-auth check          # reads the stored session
+copilot-auth authenticate   # opens the login window
+make uninstall      # remove both
+```
+
+Override `APP_INSTALL_DIR` / `BIN_INSTALL_DIR` (e.g. `~/Applications`, `~/bin`) if
+you don't want to write to `/Applications`, or `CONFIG=Release` to install the
+shipping build.
+
 ## Stored secret (the handoff contract)
 
 One Keychain `genericPassword` item — service `io.respawn.copilot`, account
