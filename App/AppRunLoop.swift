@@ -20,6 +20,10 @@ enum AppRunLoop {
 
     let window = NSWindow(contentViewController: hosting)
     window.title = "Sign in to Copilot"
+    // Stable handles for VoiceOver and for agents driving the app via the
+    // Accessibility API.
+    window.setAccessibilityTitle("Sign in to Copilot")
+    window.setAccessibilityIdentifier("copilotLoginWindow")
     window.setContentSize(NSSize(width: 480, height: 720))
     window.makeKeyAndOrderFront(nil)
     app.activate(ignoringOtherApps: true)

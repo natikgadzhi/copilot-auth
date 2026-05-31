@@ -54,6 +54,9 @@ copilot-auth authenticate   # opens the login window
 make uninstall      # remove both
 ```
 
+`authenticate` is the default, so a bare `copilot-auth` (or a Finder double-click
+of the app) opens the login window too.
+
 Override `APP_INSTALL_DIR` / `BIN_INSTALL_DIR` (e.g. `~/Applications`, `~/bin`) if
 you don't want to write to `/Applications`, or `CONFIG=Release` to install the
 shipping build.

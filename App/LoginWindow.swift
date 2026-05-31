@@ -6,7 +6,15 @@ import WebKit
 /// Hosts the auth manager's login web view in SwiftUI.
 struct LoginWebView: NSViewRepresentable {
   let webView: WKWebView
-  func makeNSView(context: Context) -> WKWebView { webView }
+
+  func makeNSView(context: Context) -> WKWebView {
+    // Labels for VoiceOver and for agents driving the app via the Accessibility
+    // API (the web content itself is exposed by WKWebView automatically).
+    webView.setAccessibilityLabel("Copilot sign-in web page")
+    webView.setAccessibilityIdentifier("copilotLoginWebView")
+    return webView
+  }
+
   func updateNSView(_ nsView: WKWebView, context: Context) {}
 }
 
@@ -23,9 +31,16 @@ struct LoginWindowContent: View {
     VStack(spacing: 0) {
       LoginWebView(webView: manager.loginWebView)
         .frame(minWidth: 480, minHeight: 640)
-      Divider()
-      pasteBar
+
+      // The paste field only matters once Copilot has emailed the sign-in link,
+      // so it stays hidden until that screen appears.
+      if manager.signInLinkSent {
+        Divider()
+        pasteBar
+          .transition(.move(edge: .bottom).combined(with: .opacity))
+      }
     }
+    .animation(.snappy, value: manager.signInLinkSent)
     .onChange(of: manager.state) { _, newValue in
       if newValue == .authenticated { onAuthenticated() }
     }
@@ -42,25 +57,29 @@ struct LoginWindowContent: View {
   }
 
   /// Footer affordance for Copilot's passwordless flow: the email's sign-in link
-  /// opens in the system browser, not here, so the user pastes it back to finish.
+  /// opens in the system browser, not here, so the user pastes it back (⌘V) to
+  /// finish. Shown only once Copilot reports the link was sent.
   private var pasteBar: some View {
     VStack(alignment: .leading) {
-      Text("Signing in with an email link? Paste it here to finish.")
+      Text("Check your email, then paste the sign-in link here to finish (⌘V).")
         .font(.callout)
         .foregroundStyle(.secondary)
+        .accessibilityIdentifier("pasteInstructions")
 
       HStack {
         TextField("https://…", text: $link)
           .textFieldStyle(.roundedBorder)
           .onSubmit(open)
-        Button("Paste") {
-          if let clipboard = NSPasteboard.general.string(forType: .string) {
-            link = clipboard
-          }
-        }
+          .accessibilityLabel("Sign-in link")
+          .accessibilityHint("Paste the sign-in link from your Copilot email")
+          .accessibilityIdentifier("signInLinkField")
+
         Button("Open", action: open)
           .buttonStyle(.borderedProminent)
           .disabled(parsedLink == nil)
+          .accessibilityLabel("Open sign-in link")
+          .accessibilityHint("Loads the pasted link to finish signing in")
+          .accessibilityIdentifier("openSignInLinkButton")
       }
 
       if let url = parsedLink {
@@ -71,6 +90,7 @@ struct LoginWindowContent: View {
         )
         .font(.caption)
         .foregroundStyle(trusted ? Color.secondary : Color.orange)
+        .accessibilityIdentifier("destinationHost")
       }
     }
     .padding()

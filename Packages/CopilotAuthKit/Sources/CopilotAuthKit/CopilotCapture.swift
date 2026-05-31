@@ -64,6 +64,20 @@ public enum CopilotCapture {
     }
     """
 
+  /// Evaluates (in the page) to `true` once Copilot shows its "we've sent a
+  /// sign-in link to your inbox" screen — the only moment the paste-the-link
+  /// field is useful. Matches a few stable phrasings of that copy.
+  public static let signInPromptJS = """
+    (function () {
+      const text = (document.body ? document.body.innerText : "").toLowerCase();
+      return text.includes("sign-in link")
+        || text.includes("sign in link")
+        || text.includes("we've sent")
+        || text.includes("we sent")
+        || (text.includes("check your") && text.includes("email"));
+    })()
+    """
+
   /// Pure: validate the JS result into secrets. `nil` means "not captured yet"
   /// (keep polling). Kept WebView-free so the completion logic is unit-testable.
   public static func parse(_ result: Any?) -> CapturedSecrets? {
