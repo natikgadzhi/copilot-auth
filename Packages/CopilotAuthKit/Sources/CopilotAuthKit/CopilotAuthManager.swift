@@ -18,6 +18,10 @@ public final class CopilotAuthManager: NSObject {
   public private(set) var secrets: CopilotSessionSecrets?
 
   private var webView: WKWebView?
+  private var captureTask: Task<Void, Never>?
+
+  /// How often the capture poll re-reads IndexedDB while waiting for login.
+  private let pollInterval: Duration = .seconds(1.5)
 
   public init(secretStore: any CopilotSecretStoring) {
     self.secretStore = secretStore
@@ -48,6 +52,7 @@ public final class CopilotAuthManager: NSObject {
     log.info("startLogin: loading \(url.absoluteString, privacy: .public)")
     state = .authenticating
     loginWebView.load(URLRequest(url: url))
+    startCapturePolling()
   }
 
   /// Load a pasted email sign-in link in the *same* web view. Copilot's
@@ -62,6 +67,39 @@ public final class CopilotAuthManager: NSObject {
     log.info("loadSignInLink: host=\(url.host ?? "<nil>", privacy: .public)")
     state = .authenticating
     loginWebView.load(URLRequest(url: url))
+    startCapturePolling()
+  }
+
+  /// Poll the page's IndexedDB until the Firebase secrets appear. Firebase writes
+  /// them asynchronously after login — sometimes with no further navigation — so a
+  /// single read on `didCommit` misses them; we re-read on an interval instead.
+  private func startCapturePolling() {
+    guard captureTask == nil else { return }
+    captureTask = Task { @MainActor [weak self] in
+      while !Task.isCancelled {
+        guard let self, self.state != .authenticated else { return }
+        await self.attemptCapture()
+        if self.state == .authenticated { return }
+        try? await Task.sleep(for: self.pollInterval)
+      }
+    }
+  }
+
+  /// One capture attempt: run the read JS, persist on success, log a secret-free
+  /// diagnostic on a miss so failures are debuggable.
+  private func attemptCapture() async {
+    guard let webView else { return }
+    do {
+      let result = try await webView.callAsyncJavaScript(
+        CopilotCapture.indexedDBReadJS, arguments: [:], contentWorld: .page)
+      if let captured = CopilotCapture.parse(result) {
+        ingest(captured: captured)
+      } else {
+        log.info("capture miss: \(CopilotCapture.diagnostic(result), privacy: .public)")
+      }
+    } catch {
+      log.error("capture error: \(error.localizedDescription, privacy: .public)")
+    }
   }
 
   /// Single capture point — persists only when both secrets are present. Pure
@@ -73,6 +111,8 @@ public final class CopilotAuthManager: NSObject {
     secretStore.write(secrets: secrets)
     self.secrets = secrets
     state = .authenticated
+    captureTask?.cancel()
+    captureTask = nil
   }
 
   public func initSessionFromSecureStorage() {
@@ -85,6 +125,8 @@ public final class CopilotAuthManager: NSObject {
   }
 
   public func reset() {
+    captureTask?.cancel()
+    captureTask = nil
     secretStore.clear()
     secrets = nil
     state = .unauthenticated
@@ -121,15 +163,9 @@ extension CopilotAuthManager: WKNavigationDelegate {
     log.error("webContentProcessDidTerminate — WKWebView render process died")
   }
 
-  /// After each navigation commit, read the Firebase IndexedDB record; `ingest`
-  /// no-ops until both secrets have landed (post-login), then persists once.
+  /// Capture runs on a poll (see `startCapturePolling`), not here: the Firebase
+  /// record is written asynchronously after login, often with no further commit.
   public func webView(_ webView: WKWebView, didCommit navigation: WKNavigation!) {
     log.info("didCommit: \(webView.url?.host ?? "<nil>", privacy: .public)")
-    guard state != .authenticated else { return }
-    Task { @MainActor in
-      let result = try? await webView.callAsyncJavaScript(
-        CopilotCapture.indexedDBReadJS, arguments: [:], contentWorld: .page)
-      ingest(captured: CopilotCapture.parse(result))
-    }
   }
 }
