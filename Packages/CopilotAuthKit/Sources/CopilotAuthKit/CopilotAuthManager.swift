@@ -54,7 +54,7 @@ public final class CopilotAuthManager: NSObject {
   public func startLogin() {
     let url = CopilotEndpoint.app.url
     log.info("startLogin: loading \(url.absoluteString, privacy: .public)")
-    state = .authenticating
+    transition(to: .authenticating)
     loginWebView.load(URLRequest(url: url))
     startCapturePolling()
   }
@@ -69,7 +69,7 @@ public final class CopilotAuthManager: NSObject {
   /// full link.
   public func loadSignInLink(_ url: URL) {
     log.info("loadSignInLink: host=\(url.host ?? "<nil>", privacy: .public)")
-    state = .authenticating
+    transition(to: .authenticating)
     loginWebView.load(URLRequest(url: url))
     startCapturePolling()
   }
@@ -112,38 +112,52 @@ public final class CopilotAuthManager: NSObject {
     }
   }
 
-  /// Single capture point — persists only when both secrets are present. Pure
-  /// (no WebView), so it's unit-testable.
+  /// Single capture point — authenticates only when both secrets are present AND
+  /// they actually persisted to the Keychain. If the write fails (e.g. a locked
+  /// Keychain), we stay `.authenticating` and keep polling, so the next read
+  /// retries rather than reporting a session we couldn't store. Pure (no WebView),
+  /// so it's unit-testable.
   public func ingest(captured: CapturedSecrets?) {
     guard let captured else { return }
     let secrets = CopilotSessionSecrets(
       refreshToken: captured.refreshToken, apiKey: captured.apiKey)
-    secretStore.write(secrets: secrets)
+    guard secretStore.write(secrets: secrets) else {
+      log.error("keychain write failed — staying unauthenticated, will retry")
+      return
+    }
     self.secrets = secrets
-    state = .authenticated
-    cancelCapturePolling()
+    transition(to: .authenticated)
+  }
+
+  public func initSessionFromSecureStorage() {
+    guard let stored = secretStore.read() else {
+      transition(to: .unauthenticated)
+      return
+    }
+    secrets = stored
+    transition(to: .authenticated)
+  }
+
+  public func reset() {
+    secretStore.clear()
+    secrets = nil
+    signInLinkSent = false
+    transition(to: .unauthenticated)
+  }
+
+  /// The single place `state` changes. Capture polling is meaningful only while
+  /// `.authenticating`, so leaving that state always stops it — no caller has to
+  /// remember to cancel.
+  private func transition(to newState: AuthenticationState) {
+    state = newState
+    if newState != .authenticating {
+      cancelCapturePolling()
+    }
   }
 
   private func cancelCapturePolling() {
     captureTask?.cancel()
     captureTask = nil
-  }
-
-  public func initSessionFromSecureStorage() {
-    guard let stored = secretStore.read() else {
-      state = .unauthenticated
-      return
-    }
-    secrets = stored
-    state = .authenticated
-  }
-
-  public func reset() {
-    cancelCapturePolling()
-    secretStore.clear()
-    secrets = nil
-    signInLinkSent = false
-    state = .unauthenticated
   }
 }
 

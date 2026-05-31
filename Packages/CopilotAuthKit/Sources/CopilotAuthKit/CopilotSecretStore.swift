@@ -5,7 +5,9 @@ import Security
 /// in-memory for tests.
 public protocol CopilotSecretStoring: Sendable {
   func read() -> CopilotSessionSecrets?
-  func write(secrets: CopilotSessionSecrets)
+  /// Returns whether the secrets actually persisted, so the caller doesn't report
+  /// a session it couldn't store.
+  @discardableResult func write(secrets: CopilotSessionSecrets) -> Bool
   func clear()
 }
 
@@ -14,7 +16,10 @@ public final class InMemoryCopilotSecretStore: CopilotSecretStoring, @unchecked 
   private var stored: CopilotSessionSecrets?
   public init() {}
   public func read() -> CopilotSessionSecrets? { stored }
-  public func write(secrets: CopilotSessionSecrets) { stored = secrets }
+  @discardableResult public func write(secrets: CopilotSessionSecrets) -> Bool {
+    stored = secrets
+    return true
+  }
   public func clear() { stored = nil }
 }
 
@@ -51,8 +56,8 @@ public final class KeychainCopilotSecretStore: CopilotSecretStoring, @unchecked 
     return try? CopilotSessionSecrets.decoded(from: data)
   }
 
-  public func write(secrets: CopilotSessionSecrets) {
-    guard let data = try? secrets.encoded() else { return }
+  @discardableResult public func write(secrets: CopilotSessionSecrets) -> Bool {
+    guard let data = try? secrets.encoded() else { return false }
     // Delete first by the bare primary key (service + account) so an item written
     // by an older build — with different accessibility — is still replaced.
     SecItemDelete(baseQuery() as CFDictionary)
@@ -62,7 +67,7 @@ public final class KeychainCopilotSecretStore: CopilotSecretStoring, @unchecked 
     // synced to iCloud Keychain, never in an unencrypted backup, and only
     // readable while the Mac is unlocked.
     attributes[kSecAttrAccessible] = kSecAttrAccessibleWhenUnlockedThisDeviceOnly
-    SecItemAdd(attributes as CFDictionary, nil)
+    return SecItemAdd(attributes as CFDictionary, nil) == errSecSuccess
   }
 
   public func clear() {

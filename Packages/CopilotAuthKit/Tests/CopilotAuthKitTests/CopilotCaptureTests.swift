@@ -5,9 +5,9 @@ import Testing
 
 @Suite("CopilotCapture.parse")
 struct CopilotCaptureTests {
-  @Test("returns secrets when both scalars are present")
-  func bothPresent() {
-    let result = CopilotCapture.parse(["apiKey": "AIza", "refreshToken": "rt"])
+  @Test("returns secrets on an ok success result")
+  func okSuccess() {
+    let result = CopilotCapture.parse(["ok": true, "apiKey": "AIza", "refreshToken": "rt"])
     #expect(result == CapturedSecrets(apiKey: "AIza", refreshToken: "rt"))
   }
 
@@ -16,20 +16,20 @@ struct CopilotCaptureTests {
     #expect(CopilotCapture.parse(nil) == nil)
   }
 
+  @Test("returns nil without the ok flag, even if both scalars are present")
+  func requiresOkFlag() {
+    #expect(CopilotCapture.parse(["apiKey": "AIza", "refreshToken": "rt"]) == nil)
+    #expect(CopilotCapture.parse(["ok": false, "apiKey": "AIza", "refreshToken": "rt"]) == nil)
+  }
+
   @Test("returns nil when a scalar is missing")
   func missingScalar() {
-    #expect(CopilotCapture.parse(["apiKey": "AIza"]) == nil)
+    #expect(CopilotCapture.parse(["ok": true, "apiKey": "AIza"]) == nil)
   }
 
   @Test("returns nil when a scalar is empty")
   func emptyScalar() {
-    #expect(CopilotCapture.parse(["apiKey": "AIza", "refreshToken": ""]) == nil)
-  }
-
-  @Test("parses a success result that also carries the ok flag")
-  func okFlagIgnored() {
-    let result = CopilotCapture.parse(["ok": true, "apiKey": "AIza", "refreshToken": "rt"])
-    #expect(result == CapturedSecrets(apiKey: "AIza", refreshToken: "rt"))
+    #expect(CopilotCapture.parse(["ok": true, "apiKey": "AIza", "refreshToken": ""]) == nil)
   }
 
   @Test("diagnostic summarizes a miss without leaking secrets")

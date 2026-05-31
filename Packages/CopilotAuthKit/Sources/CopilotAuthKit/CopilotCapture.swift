@@ -74,9 +74,12 @@ public enum CopilotCapture {
     """
 
   /// Pure: validate the JS result into secrets. `nil` means "not captured yet"
-  /// (keep polling). Kept WebView-free so the completion logic is unit-testable.
+  /// (keep polling). Requires the explicit `ok` success flag in addition to the
+  /// scalars, so a malformed or future result shape can't be mis-read as a
+  /// capture. Kept WebView-free so the completion logic is unit-testable.
   public static func parse(_ result: Any?) -> CapturedSecrets? {
     guard let dict = result as? [String: Any],
+      (dict["ok"] as? NSNumber)?.boolValue == true,
       let apiKey = dict["apiKey"] as? String, !apiKey.isEmpty,
       let refreshToken = dict["refreshToken"] as? String, !refreshToken.isEmpty
     else {

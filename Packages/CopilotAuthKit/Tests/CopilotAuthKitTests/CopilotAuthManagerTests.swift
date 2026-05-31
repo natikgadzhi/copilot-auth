@@ -25,6 +25,14 @@ struct CopilotAuthManagerTests {
     #expect(store.read() == nil)
   }
 
+  @Test("a failed keychain write does not authenticate")
+  func ingestWriteFailure() {
+    let manager = CopilotAuthManager(secretStore: FailingSecretStore())
+    manager.ingest(captured: CapturedSecrets(apiKey: "AIza", refreshToken: "rt"))
+    #expect(manager.state != .authenticated)
+    #expect(manager.secrets == nil)
+  }
+
   @Test("initSessionFromSecureStorage restores a stored session")
   func restore() {
     let store = InMemoryCopilotSecretStore()
@@ -44,4 +52,11 @@ struct CopilotAuthManagerTests {
     #expect(manager.state == .unauthenticated)
     #expect(store.read() == nil)
   }
+}
+
+/// A store whose write always fails, to exercise `ingest`'s persistence guard.
+private final class FailingSecretStore: CopilotSecretStoring, @unchecked Sendable {
+  func read() -> CopilotSessionSecrets? { nil }
+  func write(secrets: CopilotSessionSecrets) -> Bool { false }
+  func clear() {}
 }
