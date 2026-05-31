@@ -88,7 +88,11 @@ struct LoginWindowContent: View {
         .accessibilityIdentifier("destinationHost")
       }
     }
-    .padding()
+    // Uniform breathing room on the sides and bottom (a touch less up top, since
+    // the divider already separates it from the web view).
+    .padding(.horizontal, 18)
+    .padding(.top, 14)
+    .padding(.bottom, 18)
     .background(CopilotStyle.surface)
   }
 
