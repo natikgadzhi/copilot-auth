@@ -45,6 +45,20 @@ public final class CopilotAuthManager: NSObject {
     loginWebView.load(URLRequest(url: url))
   }
 
+  /// Load a pasted email sign-in link in the *same* web view. Copilot's
+  /// passwordless login emails a one-time link that would otherwise open in the
+  /// system browser; loading it here completes Firebase's `signInWithEmailLink`
+  /// in the context where the user entered their email (it's in this web view's
+  /// localStorage), so capture proceeds as usual.
+  ///
+  /// The URL carries a one-time `oobCode`, so we log only the host — never the
+  /// full link.
+  public func loadSignInLink(_ url: URL) {
+    log.info("loadSignInLink: host=\(url.host ?? "<nil>", privacy: .public)")
+    state = .authenticating
+    loginWebView.load(URLRequest(url: url))
+  }
+
   /// Single capture point — persists only when both secrets are present. Pure
   /// (no WebView), so it's unit-testable.
   public func ingest(captured: CapturedSecrets?) {
