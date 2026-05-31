@@ -10,9 +10,9 @@ needs to talk to Copilot's private GraphQL API:
 `copilot.py` mints a fresh 1-hour ID token from these at startup, so you only run
 this when the refresh token is revoked (rarely) — not on every sync.
 
-It's a near-clone of [`amazon-order-export`][aox]'s auth flow and follows that
-repo's [`webauth` framework design][webauth]; per that doc the shared framework is
-**not** extracted yet — this copies ~150 lines from `AmazonAuth`.
+It's a near-clone of a sibling project's auth flow and follows a shared
+`webauth` token-capture design; per that design the shared framework is **not**
+extracted yet — this copies ~150 lines of the proven pattern.
 
 ## How it works
 
@@ -43,7 +43,7 @@ rebuilds. CI builds unsigned.
 ## Stored secret (the handoff contract)
 
 One Keychain `genericPassword` item — service `io.respawn.copilot`, account
-`copilot-session` — holding the [`webauth`][webauth] `SecretBundle` JSON:
+`copilot-session` — holding a `SecretBundle` JSON:
 
 ```json
 { "cookies": [], "values": { "refreshToken": "...", "apiKey": "AIza..." }, "capturedAt": 1717200000 }
@@ -65,12 +65,10 @@ prompt — click **Always Allow**.
 
 The refresh token is a bearer credential for your Copilot account. It lives only
 in the Keychain, is never written to logs/files/argv, and the capture JS result
-is never logged. See [`AGENTS`/design notes][webauth] for the threat model.
+is never logged.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
 
 [copilot-python]: https://github.com/natikgadzhi/copilot-python
-[aox]: https://github.com/natikgadzhi/amazon-order-export
-[webauth]: https://github.com/natikgadzhi/amazon-order-export/blob/main/docs/webauth-framework-design.md
