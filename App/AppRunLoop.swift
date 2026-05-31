@@ -14,12 +14,14 @@ enum AppRunLoop {
   static func runLogin(manager: CopilotAuthManager) {
     let app = NSApplication.shared
     app.setActivationPolicy(.regular)
-    installMainMenu(app)
 
-    // Closing the login window quits the app — there's nothing else to do.
+    // Closing the login window quits the app — there's nothing else to do. The
+    // delegate also hosts the About menu action, so create it before the menu.
     let delegate = LoginAppDelegate()
     appDelegate = delegate
     app.delegate = delegate
+
+    installMainMenu(app, aboutTarget: delegate)
 
     let hosting = NSHostingController(
       rootView: LoginWindowContent(manager: manager) {
@@ -61,12 +63,17 @@ enum AppRunLoop {
   /// items target the first responder via the responder chain so paste works in
   /// the sign-in-link field.
   @MainActor
-  private static func installMainMenu(_ app: NSApplication) {
+  private static func installMainMenu(_ app: NSApplication, aboutTarget: AnyObject) {
     let mainMenu = NSMenu()
 
     let appItem = NSMenuItem()
     mainMenu.addItem(appItem)
     let appMenu = NSMenu()
+    let aboutItem = appMenu.addItem(
+      withTitle: "About Copilot Auth", action: #selector(LoginAppDelegate.showAbout(_:)),
+      keyEquivalent: "")
+    aboutItem.target = aboutTarget
+    appMenu.addItem(.separator())
     appMenu.addItem(
       withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
     appItem.submenu = appMenu

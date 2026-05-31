@@ -6,4 +6,9 @@ final class LoginAppDelegate: NSObject, NSApplicationDelegate {
   func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
     true
   }
+
+  /// Menu target for the branded About panel (NSMenuItem needs a selector target).
+  @objc func showAbout(_ sender: Any?) {
+    About.showPanel()
+  }
 }
