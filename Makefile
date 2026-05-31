@@ -1,4 +1,4 @@
-.PHONY: contrib install-hooks generate format lint-format test build clean where authenticate check
+.PHONY: contrib install-hooks generate format lint-format test build clean where authenticate check dmg
 
 SWIFT_FORMAT_PATHS = App Packages
 # Extra args appended to the xcodebuild line. CI sets this to disable signing
@@ -56,3 +56,8 @@ authenticate: build
 # (expired/no-session) just prints its message instead of make's error noise.
 check: build
 	-$(BIN) check
+
+# Build a signed + notarized + stapled .dmg. Needs a Developer ID Application
+# identity and notary credentials — see scripts/build-dmg.sh for the env vars.
+dmg:
+	scripts/build-dmg.sh
