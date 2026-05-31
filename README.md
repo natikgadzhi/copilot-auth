@@ -67,6 +67,10 @@ The refresh token is a bearer credential for your Copilot account. It lives only
 in the Keychain, is never written to logs/files/argv, and the capture JS result
 is never logged. See [`AGENTS`/design notes][webauth] for the threat model.
 
+## License
+
+MIT — see [LICENSE](LICENSE).
+
 [copilot-python]: https://github.com/natikgadzhi/copilot-python
 [aox]: https://github.com/natikgadzhi/amazon-order-export
 [webauth]: https://github.com/natikgadzhi/amazon-order-export/blob/main/docs/webauth-framework-design.md
