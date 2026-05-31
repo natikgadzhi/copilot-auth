@@ -5,12 +5,21 @@ import SwiftUI
 /// Bridges the `authenticate` command to an AppKit run loop, because WKWebView
 /// needs one. Only the GUI login needs this; `check` is plain HTTP.
 enum AppRunLoop {
+  /// Retains the app delegate for the process lifetime (`NSApplication.delegate`
+  /// is a weak reference).
+  @MainActor private static var appDelegate: LoginAppDelegate?
+
   /// Show the login window until authenticated, then quit.
   @MainActor
   static func runLogin(manager: CopilotAuthManager) {
     let app = NSApplication.shared
     app.setActivationPolicy(.regular)
     installMainMenu(app)
+
+    // Closing the login window quits the app — there's nothing else to do.
+    let delegate = LoginAppDelegate()
+    appDelegate = delegate
+    app.delegate = delegate
 
     let hosting = NSHostingController(
       rootView: LoginWindowContent(manager: manager) {

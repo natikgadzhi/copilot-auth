@@ -26,6 +26,7 @@ struct LoginWindowContent: View {
   @State private var link = ""
   @State private var pendingLink: URL?
   @State private var confirmingUntrustedHost = false
+  @FocusState private var linkFieldFocused: Bool
 
   var body: some View {
     VStack(spacing: 0) {
@@ -60,22 +61,16 @@ struct LoginWindowContent: View {
   /// opens in the system browser, not here, so the user pastes it back (⌘V) to
   /// finish. Shown only once Copilot reports the link was sent.
   private var pasteBar: some View {
-    VStack(alignment: .leading) {
+    VStack(alignment: .leading, spacing: 10) {
       Text("Check your email, then paste the sign-in link here to finish (⌘V).")
-        .font(.callout)
-        .foregroundStyle(.secondary)
+        .font(.system(size: 13))
+        .foregroundStyle(CopilotStyle.ink.opacity(0.6))
         .accessibilityIdentifier("pasteInstructions")
 
-      HStack {
-        TextField("https://…", text: $link)
-          .textFieldStyle(.roundedBorder)
-          .onSubmit(open)
-          .accessibilityLabel("Sign-in link")
-          .accessibilityHint("Paste the sign-in link from your Copilot email")
-          .accessibilityIdentifier("signInLinkField")
-
+      HStack(spacing: 10) {
+        linkField
         Button("Open", action: open)
-          .buttonStyle(.borderedProminent)
+          .buttonStyle(CopilotPrimaryButtonStyle())
           .disabled(parsedLink == nil)
           .accessibilityLabel("Open sign-in link")
           .accessibilityHint("Loads the pasted link to finish signing in")
@@ -89,11 +84,40 @@ struct LoginWindowContent: View {
           systemImage: trusted ? "lock.fill" : "exclamationmark.triangle.fill"
         )
         .font(.caption)
-        .foregroundStyle(trusted ? Color.secondary : Color.orange)
+        .foregroundStyle(trusted ? CopilotStyle.ink.opacity(0.55) : Color.orange)
         .accessibilityIdentifier("destinationHost")
       }
     }
     .padding()
+    .background(CopilotStyle.surface)
+  }
+
+  /// A text field dressed to match Copilot's web input: slate fill, hairline
+  /// border, 12pt rounded, and an accent focus ring.
+  private var linkField: some View {
+    TextField("https://…", text: $link)
+      .textFieldStyle(.plain)
+      .focused($linkFieldFocused)
+      .focusEffectDisabled()
+      .font(.system(size: CopilotStyle.fieldFontSize))
+      .foregroundStyle(CopilotStyle.ink)
+      .padding(.horizontal, 12)
+      .frame(height: CopilotStyle.controlHeight)
+      .background(
+        CopilotStyle.fieldFill, in: RoundedRectangle(cornerRadius: CopilotStyle.cornerRadius)
+      )
+      .overlay {
+        RoundedRectangle(cornerRadius: CopilotStyle.cornerRadius)
+          .strokeBorder(
+            linkFieldFocused ? CopilotStyle.accent : CopilotStyle.fieldStroke,
+            lineWidth: linkFieldFocused ? 1 : 0.5)
+      }
+      .shadow(color: linkFieldFocused ? CopilotStyle.accent.opacity(0.22) : .clear, radius: 3)
+      .animation(.easeOut(duration: 0.12), value: linkFieldFocused)
+      .onSubmit(open)
+      .accessibilityLabel("Sign-in link")
+      .accessibilityHint("Paste the sign-in link from your Copilot email")
+      .accessibilityIdentifier("signInLinkField")
   }
 
   /// The trimmed pasted text as an `https` URL, or nil if it isn't one.
