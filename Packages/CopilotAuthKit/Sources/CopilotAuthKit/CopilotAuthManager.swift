@@ -100,23 +100,16 @@ public final class CopilotAuthManager: NSObject {
         ingest(captured: captured)
       } else {
         log.info("capture miss: \(CopilotCapture.diagnostic(result), privacy: .public)")
-        if !signInLinkSent { await detectSignInPrompt(in: webView) }
+        // The same read reports whether the "we've sent a link" screen is up,
+        // so the paste field reveals without a second round-trip.
+        if !signInLinkSent, CopilotCapture.signInPromptDetected(result) {
+          log.info("sign-in prompt detected — revealing the paste field")
+          signInLinkSent = true
+        }
       }
     } catch {
       log.error("capture error: \(error.localizedDescription, privacy: .public)")
     }
-  }
-
-  /// Reveal the paste-the-link field only once Copilot shows its "we've sent a
-  /// sign-in link" screen, so the field isn't clutter the rest of the time.
-  private func detectSignInPrompt(in webView: WKWebView) async {
-    guard let result = try? await webView.evaluateJavaScript(CopilotCapture.signInPromptJS),
-      let shown = result as? Bool, shown
-    else {
-      return
-    }
-    log.info("sign-in prompt detected — revealing the paste field")
-    signInLinkSent = true
   }
 
   /// Single capture point — persists only when both secrets are present. Pure
@@ -128,6 +121,10 @@ public final class CopilotAuthManager: NSObject {
     secretStore.write(secrets: secrets)
     self.secrets = secrets
     state = .authenticated
+    cancelCapturePolling()
+  }
+
+  private func cancelCapturePolling() {
     captureTask?.cancel()
     captureTask = nil
   }
@@ -142,8 +139,7 @@ public final class CopilotAuthManager: NSObject {
   }
 
   public func reset() {
-    captureTask?.cancel()
-    captureTask = nil
+    cancelCapturePolling()
     secretStore.clear()
     secrets = nil
     signInLinkSent = false

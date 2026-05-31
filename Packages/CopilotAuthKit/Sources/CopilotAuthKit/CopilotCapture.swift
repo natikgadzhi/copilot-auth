@@ -22,9 +22,18 @@ public struct CapturedSecrets: Sendable, Equatable {
 public enum CopilotCapture {
   /// Body for `WKWebView.callAsyncJavaScript` — runs as an async function in the
   /// page. Returns `{ ok: true, apiKey, refreshToken }` once authenticated, else
-  /// `{ ok: false, dbNames, keyCount, hasAuthUser, error? }`.
+  /// `{ ok: false, dbNames, keyCount, hasAuthUser, signInPrompt, error? }`. The
+  /// `signInPrompt` flag (is Copilot showing its "we've sent a sign-in link"
+  /// screen?) rides along so the caller needs only one round-trip per poll.
   public static let indexedDBReadJS = """
     const diag = { ok: false, dbNames: [], keyCount: 0, hasAuthUser: false };
+    // The cue to reveal the paste field — a cheap text scan, on every miss.
+    const pageText = (document.body ? document.body.innerText : "").toLowerCase();
+    diag.signInPrompt = pageText.includes("sign-in link")
+      || pageText.includes("sign in link")
+      || pageText.includes("we've sent")
+      || pageText.includes("we sent")
+      || (pageText.includes("check your") && pageText.includes("email"));
     try {
       const dbs = indexedDB.databases ? await indexedDB.databases() : [];
       diag.dbNames = dbs.map((d) => d.name).filter(Boolean);
@@ -64,20 +73,6 @@ public enum CopilotCapture {
     }
     """
 
-  /// Evaluates (in the page) to `true` once Copilot shows its "we've sent a
-  /// sign-in link to your inbox" screen — the only moment the paste-the-link
-  /// field is useful. Matches a few stable phrasings of that copy.
-  public static let signInPromptJS = """
-    (function () {
-      const text = (document.body ? document.body.innerText : "").toLowerCase();
-      return text.includes("sign-in link")
-        || text.includes("sign in link")
-        || text.includes("we've sent")
-        || text.includes("we sent")
-        || (text.includes("check your") && text.includes("email"));
-    })()
-    """
-
   /// Pure: validate the JS result into secrets. `nil` means "not captured yet"
   /// (keep polling). Kept WebView-free so the completion logic is unit-testable.
   public static func parse(_ result: Any?) -> CapturedSecrets? {
@@ -103,5 +98,11 @@ public enum CopilotCapture {
       summary += " error=\(error)"
     }
     return summary
+  }
+
+  /// Whether the read found Copilot's "we've sent a sign-in link" screen (the cue
+  /// to reveal the paste field). Pure, for unit-testing the flag plumbing.
+  public static func signInPromptDetected(_ result: Any?) -> Bool {
+    ((result as? [String: Any])?["signInPrompt"] as? NSNumber)?.boolValue ?? false
   }
 }

@@ -45,4 +45,12 @@ struct CopilotCaptureTests {
   func diagnosticNil() {
     #expect(CopilotCapture.diagnostic(nil) == "no result")
   }
+
+  @Test("signInPromptDetected reads the flag from a miss result")
+  func signInPrompt() {
+    #expect(CopilotCapture.signInPromptDetected(["ok": false, "signInPrompt": true]))
+    #expect(!CopilotCapture.signInPromptDetected(["ok": false, "signInPrompt": false]))
+    #expect(!CopilotCapture.signInPromptDetected(["ok": false]))
+    #expect(!CopilotCapture.signInPromptDetected(nil))
+  }
 }

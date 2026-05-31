@@ -66,9 +66,7 @@ enum AppRunLoop {
   private static func installMainMenu(_ app: NSApplication, aboutTarget: AnyObject) {
     let mainMenu = NSMenu()
 
-    let appItem = NSMenuItem()
-    mainMenu.addItem(appItem)
-    let appMenu = NSMenu()
+    let appMenu = addSubmenu(to: mainMenu, title: "")
     let aboutItem = appMenu.addItem(
       withTitle: "About Copilot Auth", action: #selector(LoginAppDelegate.showAbout(_:)),
       keyEquivalent: "")
@@ -76,28 +74,30 @@ enum AppRunLoop {
     appMenu.addItem(.separator())
     appMenu.addItem(
       withTitle: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-    appItem.submenu = appMenu
 
-    let fileItem = NSMenuItem()
-    mainMenu.addItem(fileItem)
-    let fileMenu = NSMenu(title: "File")
     // nil target → travels the responder chain to the key window's performClose.
     // Closing the window quits the app (see LoginAppDelegate).
+    let fileMenu = addSubmenu(to: mainMenu, title: "File")
     fileMenu.addItem(
       withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
-    fileItem.submenu = fileMenu
 
-    let editItem = NSMenuItem()
-    mainMenu.addItem(editItem)
-
-    let editMenu = NSMenu(title: "Edit")
+    let editMenu = addSubmenu(to: mainMenu, title: "Edit")
     editMenu.addItem(withTitle: "Cut", action: #selector(NSText.cut(_:)), keyEquivalent: "x")
     editMenu.addItem(withTitle: "Copy", action: #selector(NSText.copy(_:)), keyEquivalent: "c")
     editMenu.addItem(withTitle: "Paste", action: #selector(NSText.paste(_:)), keyEquivalent: "v")
     editMenu.addItem(
       withTitle: "Select All", action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
-    editItem.submenu = editMenu
 
     app.mainMenu = mainMenu
+  }
+
+  /// Add a titled submenu to the menu bar and return it to populate.
+  @MainActor
+  private static func addSubmenu(to mainMenu: NSMenu, title: String) -> NSMenu {
+    let item = NSMenuItem()
+    mainMenu.addItem(item)
+    let submenu = NSMenu(title: title)
+    item.submenu = submenu
+    return submenu
   }
 }
