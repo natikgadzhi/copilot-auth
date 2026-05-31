@@ -15,15 +15,6 @@ enum AppRunLoop {
     let app = NSApplication.shared
     app.setActivationPolicy(.regular)
 
-    // We're launched as a CLI (the bundle's binary directly, not via
-    // LaunchServices/`open`), so the Dock and Cmd-Tab switcher would otherwise
-    // show a generic icon. Set the bundle icon explicitly.
-    if let iconURL = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
-      let icon = NSImage(contentsOf: iconURL)
-    {
-      app.applicationIconImage = icon
-    }
-
     // Start crash reporting first (no-op when opted out or when no DSN is baked
     // into the build), so a crash during setup still has a trace. Caught capture
     // errors are reported through the same scrubbed channel.

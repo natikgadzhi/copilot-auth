@@ -7,6 +7,17 @@ final class LoginAppDelegate: NSObject, NSApplicationDelegate {
     true
   }
 
+  func applicationDidFinishLaunching(_ notification: Notification) {
+    // Launched as a CLI (the bundle binary directly, not via LaunchServices), the
+    // Dock and Cmd-Tab switcher show a generic icon. Set the bundle icon now that
+    // the app has finished launching — setting it before `run()` doesn't stick.
+    if let url = Bundle.main.url(forResource: "AppIcon", withExtension: "icns"),
+      let icon = NSImage(contentsOf: url)
+    {
+      NSApp.applicationIconImage = icon
+    }
+  }
+
   /// Menu target for the branded About panel (NSMenuItem needs a selector target).
   @objc func showAbout(_ sender: Any?) {
     About.showPanel()
