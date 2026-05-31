@@ -7,7 +7,7 @@ struct CopilotAuth: AsyncParsableCommand {
     commandName: "copilot-auth",
     abstract: "Sign in to Copilot Money and store the session for copilot.py.",
     version: "0.1.0",
-    subcommands: [AuthenticateCommand.self, CheckCommand.self],
+    subcommands: [AuthenticateCommand.self, CheckCommand.self, ResetCommand.self],
     // No subcommand (bare `copilot-auth`, or a Finder double-click of the .app)
     // opens the login window — the most useful default for a GUI sign-in tool.
     defaultSubcommand: AuthenticateCommand.self)

@@ -32,6 +32,20 @@ enum AppRunLoop {
     app.run()
   }
 
+  /// Run an async body inside an AppKit run loop with no UI, then quit.
+  /// `WKWebsiteDataStore.removeData` delivers its completion on the run loop, so
+  /// even a windowless command (`reset`) needs one pumping.
+  @MainActor
+  static func runHeadless(_ body: @escaping @MainActor () async -> Void) {
+    let app = NSApplication.shared
+    app.setActivationPolicy(.prohibited)
+    Task { @MainActor in
+      await body()
+      NSApplication.shared.terminate(nil)
+    }
+    app.run()
+  }
+
   /// A bare AppKit app has no menu bar, so neither ⌘Q nor the standard
   /// text-editing key equivalents (⌘V/⌘C/⌘X/⌘A) work. Install a minimal menu: an
   /// app menu with Quit, and an Edit menu whose items target the first responder
