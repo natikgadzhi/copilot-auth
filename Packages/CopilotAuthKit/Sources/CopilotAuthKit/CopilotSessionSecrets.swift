@@ -53,7 +53,10 @@ public struct CopilotSessionSecrets: Sendable, Equatable {
       values: ["refreshToken": refreshToken, "apiKey": apiKey],
       capturedAt: capturedAt.timeIntervalSince1970)
     let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+    // Compact (no .prettyPrinted): `security -w` hex-encodes any value containing
+    // control bytes, so a pretty-printed bundle's newlines would force consumers
+    // (and `… -w | jq`) to hex-decode first. Sorted keys keeps it diffable.
+    encoder.outputFormatting = [.sortedKeys]
     return try encoder.encode(bundle)
   }
 
