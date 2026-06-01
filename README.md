@@ -22,7 +22,18 @@ this when the refresh token is revoked (rarely) — not on every sync.
 
 ## Install & sign in
 
-The fastest path — no toolchain, just the signed app:
+**With Homebrew** (installs the app *and* puts `copilot-auth` on your PATH):
+
+```sh
+brew install --cask natikgadzhi/taps/copilot-auth
+open -a "Copilot Auth"      # sign in once; or: copilot-auth authenticate
+```
+
+The cask drops **Copilot Auth.app** in `/Applications` and symlinks the
+in-bundle binary to `copilot-auth` — the same layout `make install` produces.
+`brew upgrade` then keeps it current.
+
+**Or grab the DMG directly** — no toolchain, just the signed app:
 
 1. **Download** the latest `CopilotAuth-X.Y.Z.dmg` from the
    [**Releases**](https://github.com/natikgadzhi/copilot-auth/releases/latest)
