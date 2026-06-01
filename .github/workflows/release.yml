@@ -97,7 +97,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: natikgadzhi/homebrew-taps
-          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          token: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
           path: tap
 
       - name: Regenerate and push the cask
