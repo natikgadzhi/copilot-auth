@@ -60,7 +60,11 @@ jobs:
         shell: bash
         run: |
           dmg_path="${{ steps.artifact.outputs.dmg_path }}"
-          shasum -a 256 "${dmg_path}" | tee "${dmg_path}.sha256"
+          # Write the checksum with just the basename (not the build/release/…
+          # path) so `shasum -a 256 -c CopilotAuth-*.dmg.sha256` verifies the
+          # downloaded file directly.
+          ( cd "$(dirname "${dmg_path}")" && shasum -a 256 "$(basename "${dmg_path}")" ) \
+            | tee "${dmg_path}.sha256"
           echo "sha256=$(shasum -a 256 "${dmg_path}" | awk '{print $1}')" >> "$GITHUB_OUTPUT"
 
       - name: Attest build provenance

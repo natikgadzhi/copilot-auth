@@ -10,8 +10,10 @@ SCHEME = CopilotAuth
 CONFIG = Debug
 # Fixed build location so the .app/binary paths are static (no awk needed).
 DERIVED = .build-xcode
-APP = $(DERIVED)/Build/Products/$(CONFIG)/CopilotAuth.app
-BIN = $(APP)/Contents/MacOS/CopilotAuth
+# The product is "Copilot Auth.app" (PRODUCT_NAME has a space); every use of
+# $(APP)/$(BIN) below is quoted accordingly.
+APP = $(DERIVED)/Build/Products/$(CONFIG)/Copilot Auth.app
+BIN = $(APP)/Contents/MacOS/Copilot Auth
 
 # Where `make install` puts things — the same layout a Homebrew cask produces:
 # the .app under /Applications, and a `copilot-auth` symlink to the in-bundle
@@ -51,17 +53,17 @@ clean:
 
 # Print the built binary's path so you can run it directly.
 where:
-	@echo $(BIN)
+	@echo "$(BIN)"
 
 # Interactive Copilot login. Equivalent to running the app in Xcode (⌘R), which
 # is the most reliable way to see the login page + console logs.
 authenticate: build
-	open -n -W $(APP) --args authenticate
+	open -n -W "$(APP)" --args authenticate
 
 # Headless session check (plain HTTP, no GUI). Leading '-' so a non-zero status
 # (expired/no-session) just prints its message instead of make's error noise.
 check: build
-	-$(BIN) check
+	-"$(BIN)" check
 
 # Build a signed + notarized + stapled .dmg. Needs a Developer ID Application
 # identity and notary credentials — see scripts/build-dmg.sh for the env vars.
@@ -75,14 +77,14 @@ dmg:
 # check` works from any terminal. Override CONFIG=Release to test the shipping
 # build.
 install: build
-	rm -rf "$(APP_INSTALL_DIR)/CopilotAuth.app"
-	ditto "$(APP)" "$(APP_INSTALL_DIR)/CopilotAuth.app"
+	rm -rf "$(APP_INSTALL_DIR)/Copilot Auth.app"
+	ditto "$(APP)" "$(APP_INSTALL_DIR)/Copilot Auth.app"
 	mkdir -p "$(BIN_INSTALL_DIR)"
-	ln -sf "$(APP_INSTALL_DIR)/CopilotAuth.app/Contents/MacOS/CopilotAuth" "$(BIN_INSTALL_DIR)/copilot-auth"
-	@echo "Installed CopilotAuth.app -> $(APP_INSTALL_DIR) and copilot-auth -> $(BIN_INSTALL_DIR)"
+	ln -sf "$(APP_INSTALL_DIR)/Copilot Auth.app/Contents/MacOS/Copilot Auth" "$(BIN_INSTALL_DIR)/copilot-auth"
+	@echo "Installed Copilot Auth.app -> $(APP_INSTALL_DIR) and copilot-auth -> $(BIN_INSTALL_DIR)"
 	@echo "Try: copilot-auth --help   |   copilot-auth authenticate"
 
 uninstall:
-	rm -rf "$(APP_INSTALL_DIR)/CopilotAuth.app"
+	rm -rf "$(APP_INSTALL_DIR)/Copilot Auth.app"
 	rm -f "$(BIN_INSTALL_DIR)/copilot-auth"
-	@echo "Removed CopilotAuth.app and the copilot-auth symlink."
+	@echo "Removed Copilot Auth.app and the copilot-auth symlink."

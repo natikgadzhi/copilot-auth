@@ -29,9 +29,13 @@ ARCHIVE_PATH="${ARCHIVE_PATH:-build/CopilotAuth.xcarchive}"
 EXPORT_DIR="${EXPORT_DIR:-build/export}"
 RELEASE_DIR="${RELEASE_DIR:-build/release}"
 DMG_STAGING_DIR="${DMG_STAGING_DIR:-build/dmg}"
-# The archived product is named after the target (PRODUCT_NAME = CopilotAuth).
-APP_NAME="${APP_NAME:-CopilotAuth.app}"
-DMG_BASENAME="${DMG_BASENAME:-${APP_NAME%.app}}"
+# The archived product is "Copilot Auth.app" (PRODUCT_NAME = "Copilot Auth").
+APP_NAME="${APP_NAME:-Copilot Auth.app}"
+# Keep the DMG (and therefore the published asset) name space-free even though
+# the app has a space. GitHub rewrites spaces in asset names to dots, which
+# would break `shasum -c` against the downloaded file; a space-free name keeps
+# verification working and the asset tidy (CopilotAuth-<version>.dmg).
+DMG_BASENAME="${DMG_BASENAME:-CopilotAuth}"
 DMG_VERSION="${DMG_VERSION:-}"
 DMG_NAME="${DMG_NAME:-}"
 APP_SIGN_IDENTITY="${APP_SIGN_IDENTITY:-}"
@@ -188,7 +192,9 @@ resolve_release_metadata() {
   fi
 
   if [[ -z "${DMG_NAME}" ]]; then
-    DMG_NAME="${DMG_BASENAME} ${DMG_VERSION}.dmg"
+    # Hyphen, not space: a space-free asset name survives GitHub's upload rename
+    # and keeps `shasum -c` working against the downloaded file.
+    DMG_NAME="${DMG_BASENAME}-${DMG_VERSION}.dmg"
   fi
 }
 

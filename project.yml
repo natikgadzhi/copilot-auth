@@ -38,6 +38,11 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: io.respawn.CopilotAuth
+        # The shipped app bundle is "Copilot Auth.app" (two words). The target
+        # and scheme stay "CopilotAuth"; only the product name carries the space.
+        # The CLI's command name is hardcoded ("copilot-auth"), so help text is
+        # unaffected by the space in the executable.
+        PRODUCT_NAME: "Copilot Auth"
         # App icon from App/Assets.xcassets/AppIcon.appiconset.
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         # Real Info.plist (not GENERATE_INFOPLIST_FILE): we inject custom keys
