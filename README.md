@@ -1,8 +1,18 @@
-# copilot-auth
+<p align="center">
+  <img src="docs/logo.png" alt="Copilot Auth" width="128" height="128">
+</p>
 
-A tiny macOS app that signs you in to [Copilot Money](https://app.copilot.money)
-in a real web view and stores the two secrets [`copilot.py`][copilot-python]
-needs to talk to Copilot's private GraphQL API:
+<h1 align="center">Copilot Auth</h1>
+
+<p align="center">
+  A tiny macOS app that signs you in to
+  <a href="https://app.copilot.money">Copilot Money</a> and stores the secrets
+  <a href="https://github.com/natikgadzhi/copilot-python"><code>copilot.py</code></a>
+  needs to talk to Copilot's private GraphQL API.
+</p>
+
+It captures two values during a normal web login and saves them to your macOS
+Keychain:
 
 - `COPILOT_REFRESH_TOKEN` — the Firebase refresh token
 - `FIREBASE_API_KEY` — the public web API key
@@ -10,58 +20,40 @@ needs to talk to Copilot's private GraphQL API:
 `copilot.py` mints a fresh 1-hour ID token from these at startup, so you only run
 this when the refresh token is revoked (rarely) — not on every sync.
 
-It's a near-clone of a sibling project's auth flow and follows a shared
-`webauth` token-capture design; per that design the shared framework is **not**
-extracted yet — this copies ~150 lines of the proven pattern.
+## Install & sign in
+
+The fastest path — no toolchain, just the signed app:
+
+1. **Download** the latest `CopilotAuth-X.Y.Z.dmg` from the
+   [**Releases**](https://github.com/natikgadzhi/copilot-auth/releases/latest)
+   page.
+2. **Open** the DMG and drag **Copilot Auth** into **Applications**.
+3. **Launch** Copilot Auth. It opens a real Copilot Money login window — do the
+   normal email + password + 2FA. When it captures your session it stores the
+   two secrets in your Keychain and quits.
+4. **Use `copilot.py`.** It reads the Keychain automatically — nothing to copy or
+   paste. The first read triggers a one-time Keychain prompt; click **Always
+   Allow**.
+
+That's it. Re-run Copilot Auth only if your session is revoked.
+
+The app is signed with a Developer ID and notarized by Apple, so it opens with a
+normal double-click. Want to verify the download first? See
+[Verifying a release](#verifying-a-release).
 
 ## How it works
 
-`authenticate` opens a `WKWebView` at `app.copilot.money`. You do the normal
-email/password + 2FA login. After each navigation it reads the Firebase record
-out of the page's IndexedDB (`firebaseLocalStorageDb` → the
-`firebase:authUser:<API_KEY>:[DEFAULT]` entry), which yields **both** the API key
-(from the record's key) and the refresh token
-(`value.stsTokenManager.refreshToken`). Once both are present it writes them to
-the Keychain and quits.
+Copilot Auth opens a `WKWebView` at `app.copilot.money` and lets you log in
+normally. After each navigation it reads the Firebase record out of the page's
+IndexedDB (`firebaseLocalStorageDb` → the `firebase:authUser:<API_KEY>:[DEFAULT]`
+entry), which yields **both** the API key (from the record's key) and the refresh
+token (`value.stsTokenManager.refreshToken`). Once both are present it writes them
+to the Keychain and quits.
 
-The app is built as an `.app` bundle (WKWebView's helper process requires one)
-but driven as a CLI.
+It's built as an `.app` bundle (WKWebView's helper process requires one) but can
+also be driven as a CLI (see [below](#use-it-from-the-terminal)).
 
-## Build & run
-
-```sh
-make contrib        # installs xcodegen, git hooks, generates the project
-make authenticate   # build, open the login window, capture + store the session
-make check          # is the stored session still valid? (exit 0/1/2)
-make test           # CopilotAuthKit unit tests
-make build          # compile the .app
-```
-
-Signed with Developer ID so the Keychain item's no-prompt access survives
-rebuilds. CI builds unsigned.
-
-## Install as a CLI
-
-This is a CLI that ships as a `.app` bundle (WKWebView needs one). `make install`
-mirrors what a Homebrew cask does — copies the app to `/Applications` and symlinks
-its binary onto your PATH as `copilot-auth`:
-
-```sh
-make install        # .app -> /Applications, copilot-auth -> $(brew --prefix)/bin
-copilot-auth --help
-copilot-auth check          # reads the stored session
-copilot-auth authenticate   # opens the login window
-make uninstall      # remove both
-```
-
-`authenticate` is the default, so a bare `copilot-auth` (or a Finder double-click
-of the app) opens the login window too.
-
-Override `APP_INSTALL_DIR` / `BIN_INSTALL_DIR` (e.g. `~/Applications`, `~/bin`) if
-you don't want to write to `/Applications`, or `CONFIG=Release` to install the
-shipping build.
-
-## Stored secret (the handoff contract)
+## The stored secret (handoff contract)
 
 One Keychain `genericPassword` item — service `io.respawn.copilot`, account
 `copilot-session` — holding a `SecretBundle` JSON:
@@ -79,8 +71,7 @@ security find-generic-password -s io.respawn.copilot -w | jq -r '.values.refresh
 `copilot.py` reads it automatically: if `COPILOT_REFRESH_TOKEN` /
 `FIREBASE_API_KEY` aren't already in the environment or `.env`, it shells out to
 `security` and parses this bundle. (Environment and `.env` always win, so CI and
-manual-paste keep working.) The first such read triggers a one-time Keychain
-prompt — click **Always Allow**.
+manual-paste keep working.)
 
 ## Privacy & Security
 
@@ -96,12 +87,62 @@ menu → *Send anonymous crash reports*) send only an app version, OS version, a
 paths, or any identifier; anything secret-shaped that survives scrubbing drops the
 whole event. Your Keychain tokens never leave the machine.
 
-Full details, the egress table, and how to verify a release (SHA-256 +
-`gh attestation verify` + the commit SHA shown in About) are in
-[SECURITY.md](SECURITY.md).
+Full details and the egress table are in [SECURITY.md](SECURITY.md).
+
+### Verifying a release
+
+Every release is signed, notarized, and ships a SHA-256 and a SLSA build
+provenance attestation. To verify a download:
+
+```sh
+shasum -a 256 -c CopilotAuth-*.dmg.sha256                       # checksum matches
+gh attestation verify CopilotAuth-*.dmg --repo natikgadzhi/copilot-auth   # built by CI from the tagged commit
+```
+
+The running app's **About** panel shows the exact commit it was built from.
+
+## Use it from the terminal
+
+Copilot Auth doubles as a CLI. If you'd rather drive it from a shell, symlink the
+in-bundle binary onto your PATH (drag the app to `/Applications` first):
+
+```sh
+ln -sf "/Applications/Copilot Auth.app/Contents/MacOS/Copilot Auth" "$(brew --prefix)/bin/copilot-auth"
+
+copilot-auth authenticate   # opens the login window (the default)
+copilot-auth check          # is the stored session still valid? (exit 0/1/2)
+copilot-auth --help
+```
+
+A bare `copilot-auth` (or a Finder double-click of the app) runs `authenticate`.
+
+## Build from source
+
+You only need this to hack on the app — most people should just grab the DMG
+above.
+
+```sh
+make contrib        # installs xcodegen, git hooks, generates the project
+make authenticate   # build, open the login window, capture + store the session
+make check          # is the stored session still valid? (exit 0/1/2)
+make test           # CopilotAuthKit unit tests
+make build          # compile the .app
+
+make install        # .app -> /Applications, copilot-auth -> $(brew --prefix)/bin
+make uninstall      # remove both
+```
+
+`make install` mirrors what a Homebrew cask does (app in `/Applications`, a
+`copilot-auth` symlink on PATH). Override `APP_INSTALL_DIR` / `BIN_INSTALL_DIR`
+(e.g. `~/Applications`, `~/bin`) to avoid writing to `/Applications`, or
+`CONFIG=Release` to install the shipping build. Local builds are signed with
+Developer ID so the Keychain item's no-prompt access survives rebuilds; CI builds
+unsigned.
+
+Releases are cut by the **Tag release** workflow (`workflow_dispatch` → pick a
+patch/minor/major bump); it bumps the version, tags, and triggers the signed +
+notarized release build.
 
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-[copilot-python]: https://github.com/natikgadzhi/copilot-python
